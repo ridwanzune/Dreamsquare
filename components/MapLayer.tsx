@@ -1,3 +1,4 @@
+
 import React, { useMemo, CSSProperties } from 'react';
 import { Layer } from '../types';
 import { NON_INTERACTIVE_LAYER_NAMES } from '../constants';
@@ -37,6 +38,14 @@ const MapLayer: React.FC<MapLayerProps> = ({ layer, isHovered, onHover }) => {
     }
   };
 
+  const handlePress = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isInteractive) {
+      // Stop the event from bubbling up to the map's pan/drag handlers
+      e.stopPropagation();
+      onHover(layer.name);
+    }
+  };
+
   const style: CSSProperties = useMemo(() => ({
     left: layer.x,
     top: layer.y,
@@ -52,6 +61,8 @@ const MapLayer: React.FC<MapLayerProps> = ({ layer, isHovered, onHover }) => {
       style={style}
       className="absolute"
       onMouseEnter={handleMouseEnter}
+      onMouseDown={handlePress}
+      onTouchStart={handlePress}
     >
       <img
         src={layer.url}

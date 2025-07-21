@@ -17,7 +17,6 @@ const App: React.FC = () => {
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const [audioReady, setAudioReady] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const isInitializingAudio = useRef(false);
 
   const layers: Layer[] = useMemo(() => {
     return LAYER_DATA.map(layerData => ({
@@ -52,42 +51,6 @@ const App: React.FC = () => {
       return next;
     });
   };
-
-  const initializeAudio = useCallback(() => {
-    if (!audioContextRef.current || audioReady || isInitializingAudio.current) {
-      return;
-    }
-    isInitializingAudio.current = true;
-    
-    const audioContext = audioContextRef.current;
-    if (audioContext.state === 'suspended') {
-      audioContext.resume().then(() => {
-        setAudioReady(true);
-      }).catch(error => {
-        console.warn("AudioContext resume failed:", error);
-      }).finally(() => {
-        isInitializingAudio.current = false;
-      });
-    } else {
-      setAudioReady(true);
-      isInitializingAudio.current = false;
-    }
-  }, [audioReady]);
-
-  useEffect(() => {
-    if (assetsLoaded && !audioReady) {
-      const handleFirstInteraction = () => {
-        initializeAudio();
-      };
-      document.addEventListener('pointerdown', handleFirstInteraction, { once: true });
-      document.addEventListener('keydown', handleFirstInteraction, { once: true });
-      
-      return () => {
-        document.removeEventListener('pointerdown', handleFirstInteraction);
-        document.removeEventListener('keydown', handleFirstInteraction);
-      };
-    }
-  }, [assetsLoaded, audioReady, initializeAudio]);
 
   useEffect(() => {
     if (!audioContextRef.current) {
@@ -151,17 +114,26 @@ const App: React.FC = () => {
   
   useEffect(() => {
     if (loadingProgress >= 100 && !assetsLoaded) {
-      setAssetsLoaded(true);
+      // All assets are reported as loaded.
+      // We'll wait an additional 2 seconds to ensure everything, 
+      // including rendering and audio decoding, is truly ready for a smooth transition.
+      const transitionTimer = setTimeout(() => {
+        setAssetsLoaded(true);
+      }, 2000);
+
+      return () => clearTimeout(transitionTimer); // Cleanup timer on unmount
     }
   }, [loadingProgress, assetsLoaded]);
 
   const playHoverSound = useCallback(() => {
-    if (isMuted) return;
+    if (isMuted || !audioContextRef.current || !audioBufferRef.current) {
+      return;
+    }
 
     const audioContext = audioContextRef.current;
     const audioBuffer = audioBufferRef.current;
 
-    if (audioReady && audioContext && audioBuffer) {
+    const play = () => {
       try {
         const source = audioContext.createBufferSource();
         source.buffer = audioBuffer;
@@ -170,14 +142,33 @@ const App: React.FC = () => {
       } catch (e) {
         console.error("Error playing sound:", e);
       }
+    };
+
+    // If context is suspended, the user's interaction (the one that called this function)
+    // should be enough to resume it. This is key for mobile devices.
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().then(() => {
+        setAudioReady(true);
+        play();
+      }).catch(e => console.error("Audio resume failed on play:", e));
+    } else {
+      // If it's already running, ensure our state is up to date and play.
+      if (!audioReady) setAudioReady(true);
+      play();
     }
-  }, [audioReady, isMuted]);
+  }, [isMuted, audioReady]);
   
   const handleToggleMute = () => {
-    if (!audioReady) {
-      initializeAudio();
-    }
     setIsMuted(prev => !prev);
+    
+    // Also try to unlock audio context if it hasn't been already.
+    // This makes the mute button a valid first interaction to enable audio.
+    const audioContext = audioContextRef.current;
+    if (!audioReady && audioContext && audioContext.state === 'suspended') {
+      audioContext.resume().then(() => {
+        setAudioReady(true);
+      }).catch(e => console.error("Audio resume failed on mute toggle:", e));
+    }
   };
 
   return (

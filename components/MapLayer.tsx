@@ -7,30 +7,33 @@ interface MapLayerProps {
   layer: Layer;
   isHovered: boolean;
   onHover: (name: string | null) => void;
-  audioRef: React.RefObject<HTMLAudioElement>;
 }
 
 const Tooltip: React.FC<{ name: string }> = ({ name }) => (
   <div 
-    className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full px-6 py-3 bg-gradient-to-b from-gray-900 to-black/80 text-white text-3xl rounded-lg shadow-2xl whitespace-nowrap pointer-events-none z-[101] border border-teal-400/50"
-    style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+    className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full px-8 py-4 bg-black/75 text-white text-4xl rounded-xl shadow-lg whitespace-nowrap pointer-events-none z-[101]"
+    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
   >
     {name}
-    <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-5 h-5 bg-black/80 transform rotate-45 -mb-2.5 border-r border-b border-teal-400/50"></div>
+  </div>
+);
+
+const PermanentLabel: React.FC<{ name: string }> = ({ name }) => (
+  <div 
+    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-5 py-2 bg-black/75 text-white text-3xl rounded-lg shadow-lg whitespace-nowrap pointer-events-none"
+    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
+  >
+    {name}
   </div>
 );
 
 
-const MapLayer: React.FC<MapLayerProps> = ({ layer, isHovered, onHover, audioRef }) => {
+const MapLayer: React.FC<MapLayerProps> = ({ layer, isHovered, onHover }) => {
   const isInteractive = !NON_INTERACTIVE_LAYER_NAMES.includes(layer.name);
 
   const handleMouseEnter = () => {
     if (isInteractive) {
       onHover(layer.name);
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(error => console.error("Audio play failed:", error));
-      }
     }
   };
 
@@ -47,7 +50,7 @@ const MapLayer: React.FC<MapLayerProps> = ({ layer, isHovered, onHover, audioRef
   return (
     <div
       style={style}
-      className={`absolute ${layer.name === 'Logo' ? 'map-logo' : ''}`}
+      className="absolute"
       onMouseEnter={handleMouseEnter}
     >
       <img
@@ -58,6 +61,7 @@ const MapLayer: React.FC<MapLayerProps> = ({ layer, isHovered, onHover, audioRef
         draggable="false"
       />
       {isHovered && <Tooltip name={capitalizeWords(layer.name)} />}
+      {layer.name === 'Entrance' && <PermanentLabel name={capitalizeWords(layer.name)} />}
     </div>
   );
 };

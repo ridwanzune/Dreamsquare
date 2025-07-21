@@ -20,18 +20,32 @@
 </script>
 <style>
   .map-logo {
+    position: absolute;
+    z-index: 10;
     transition: all 0.3s ease-in-out;
+    /* Desktop styles */
+    top: 20px;
+    left: 20px;
+    width: 150px;
+    height: auto;
   }
-  @media (max-width: 768px) {
-    .map-logo {
-      /* Override inline styles for mobile view */
-      top: auto !important;
-      left: 10px !important;
-      bottom: 10px !important;
-      width: 120px !important;
-      height: auto !important;
-      z-index: 50 !important;
+
+  @keyframes float-across {
+    from {
+      transform: translateX(4500px);
     }
+    to {
+      transform: translateX(-1500px);
+    }
+  }
+
+  .cloud {
+    position: absolute;
+    animation-name: float-across;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    pointer-events: none;
+    will-change: transform;
   }
 </style>
 <link rel="stylesheet" href="/index.css">

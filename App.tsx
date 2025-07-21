@@ -1,24 +1,113 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Layer } from './types';
-import { LAYER_DATA, IMAGE_URLS, BACKGROUND_COLOR, HOVER_SOUND_URL } from './constants';
+import { LAYER_DATA, IMAGE_URLS, BACKGROUND_COLOR, HOVER_SOUND_URL, BUILDING_LAYER_NAMES, OTHER_FEATURES_LAYER_NAMES, CLOUDS_CONFIG } from './constants';
 import LoadingScreen from './components/LoadingScreen';
 import InteractiveMap from './components/InteractiveMap';
+import ControlPanel from './components/ControlPanel';
+import SoundControl from './components/SoundControl';
 
 const App: React.FC = () => {
   const [assetsLoaded, setAssetsLoaded] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
-  const [readyToEnter, setReadyToEnter] = useState<boolean>(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [hiddenLayers, setHiddenLayers] = useState<Set<string>>(new Set());
+
+  // Web Audio API refs for robust sound handling
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
+  const [audioReady, setAudioReady] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const isInitializingAudio = useRef(false);
 
   const layers: Layer[] = useMemo(() => {
     return LAYER_DATA.map(layerData => ({
       ...layerData,
       url: IMAGE_URLS[layerData.name.replace(/ /g, '_')] || ''
-    })).filter(layer => layer.url && layer.name !== 'Map Ledgend');
-  }, []);
+    })).filter(layer => layer.url && layer.name !== 'Map Ledgend' && !hiddenLayers.has(layer.name));
+  }, [hiddenLayers]);
+
+  const handleToggleLayer = (layerIdentifier: string) => {
+    setHiddenLayers(prev => {
+      const next = new Set(prev);
+      const toggleGroup = (group: string[]) => {
+        const areAllShown = group.every(name => !prev.has(name));
+        if (areAllShown) {
+          group.forEach(name => next.add(name));
+        } else {
+          group.forEach(name => next.delete(name));
+        }
+      };
+
+      if (layerIdentifier === 'Buildings') {
+        toggleGroup(BUILDING_LAYER_NAMES);
+      } else if (layerIdentifier === 'Features') {
+        toggleGroup(OTHER_FEATURES_LAYER_NAMES);
+      } else {
+        if (next.has(layerIdentifier)) {
+          next.delete(layerIdentifier);
+        } else {
+          next.add(layerIdentifier);
+        }
+      }
+      return next;
+    });
+  };
+
+  const initializeAudio = useCallback(() => {
+    if (!audioContextRef.current || audioReady || isInitializingAudio.current) {
+      return;
+    }
+    isInitializingAudio.current = true;
+    
+    const audioContext = audioContextRef.current;
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().then(() => {
+        setAudioReady(true);
+      }).catch(error => {
+        console.warn("AudioContext resume failed:", error);
+      }).finally(() => {
+        isInitializingAudio.current = false;
+      });
+    } else {
+      setAudioReady(true);
+      isInitializingAudio.current = false;
+    }
+  }, [audioReady]);
 
   useEffect(() => {
-    const assetUrls = layers.map(l => l.url);
+    if (assetsLoaded && !audioReady) {
+      const handleFirstInteraction = () => {
+        initializeAudio();
+      };
+      document.addEventListener('pointerdown', handleFirstInteraction, { once: true });
+      document.addEventListener('keydown', handleFirstInteraction, { once: true });
+      
+      return () => {
+        document.removeEventListener('pointerdown', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+      };
+    }
+  }, [assetsLoaded, audioReady, initializeAudio]);
+
+  useEffect(() => {
+    if (!audioContextRef.current) {
+        try {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser.");
+        }
+    }
+
+    const layerImageUrls = LAYER_DATA
+        .map(layerData => IMAGE_URLS[layerData.name.replace(/ /g, '_')] || '');
+    const cloudImageUrls = CLOUDS_CONFIG.map(cloud => cloud.src);
+    
+    const assetUrls = [...new Set(
+        layerImageUrls
+        .concat(IMAGE_URLS['Logo'])
+        .concat(cloudImageUrls)
+        .filter(url => !!url))];
+
     const totalAssets = assetUrls.length + 1; // +1 for the audio file
     let loadedCount = 0;
 
@@ -27,35 +116,25 @@ const App: React.FC = () => {
       setLoadingProgress((loadedCount / totalAssets) * 100);
     };
 
-    // Preload Audio
-    const audio = audioRef.current;
-    if (audio) {
-      if (audio.readyState > 3) { // HAVE_ENOUGH_DATA
+    const preloadAudio = async () => {
+      if (!audioContextRef.current) {
+        console.warn("AudioContext not available, skipping audio preload.");
         updateProgress();
-      } else {
-        const onCanPlayThrough = () => {
-          updateProgress();
-          audio.removeEventListener('canplaythrough', onCanPlayThrough);
-          audio.removeEventListener('error', onError);
-        };
-        const onError = () => {
-          console.error("Failed to preload audio.");
-          updateProgress(); // Still count it as "loaded" to not block the app
-          audio.removeEventListener('canplaythrough', onCanPlayThrough);
-          audio.removeEventListener('error', onError);
-        };
-        audio.addEventListener('canplaythrough', onCanPlayThrough);
-        audio.addEventListener('error', onError);
-        audio.load();
+        return;
       }
-    } else {
-        // If no audio element, count it as loaded.
+      try {
+        const response = await fetch(HOVER_SOUND_URL);
+        const arrayBuffer = await response.arrayBuffer();
+        const decodedAudio = await audioContextRef.current.decodeAudioData(arrayBuffer);
+        audioBufferRef.current = decodedAudio;
+      } catch (error) {
+        console.error("Failed to load and decode audio:", error);
+      } finally {
         updateProgress();
-    }
+      }
+    };
+    preloadAudio();
 
-    // Preload Images
-    if (assetUrls.length === 0) return;
-    
     assetUrls.forEach(url => {
       const img = new Image();
       img.src = url;
@@ -65,37 +144,70 @@ const App: React.FC = () => {
       img.onload = onFinish;
       img.onerror = () => {
         console.error(`Failed to load image: ${url}`);
-        onFinish(); // Count it as loaded even on error
+        onFinish(); 
       };
     });
-}, [layers]);
+  }, []);
   
   useEffect(() => {
-    if (loadingProgress >= 100) {
-      setTimeout(() => setReadyToEnter(true), 500);
+    if (loadingProgress >= 100 && !assetsLoaded) {
+      setAssetsLoaded(true);
     }
-  }, [loadingProgress]);
+  }, [loadingProgress, assetsLoaded]);
 
-  const handleEnter = () => {
-    setAssetsLoaded(true);
+  const playHoverSound = useCallback(() => {
+    if (isMuted) return;
+
+    const audioContext = audioContextRef.current;
+    const audioBuffer = audioBufferRef.current;
+
+    if (audioReady && audioContext && audioBuffer) {
+      try {
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+      } catch (e) {
+        console.error("Error playing sound:", e);
+      }
+    }
+  }, [audioReady, isMuted]);
+  
+  const handleToggleMute = () => {
+    if (!audioReady) {
+      initializeAudio();
+    }
+    setIsMuted(prev => !prev);
   };
 
   return (
-    <div className="w-screen h-screen overflow-hidden" style={{ backgroundColor: BACKGROUND_COLOR }}>
-      <audio ref={audioRef} src={HOVER_SOUND_URL} preload="auto" />
+    <div className="w-screen h-screen overflow-hidden relative flex flex-col md:block" style={{ backgroundColor: BACKGROUND_COLOR }}>
+      {assetsLoaded && (
+        <>
+          <SoundControl isMuted={isMuted} onToggle={handleToggleMute} />
+          
+          {/* Desktop Logo */}
+          <img src={IMAGE_URLS['Logo']} alt="Resort Logo" className="map-logo pointer-events-none hidden md:block" />
+
+          {/* Mobile Header */}
+          <header className="md:hidden text-center py-2 bg-black/20 shrink-0">
+              <img src={IMAGE_URLS['Logo']} alt="Resort Logo" className="h-10 w-auto inline-block" />
+          </header>
+        </>
+      )}
       
       {!assetsLoaded && (
         <LoadingScreen 
             progress={loadingProgress} 
             logoUrl={IMAGE_URLS['Logo']} 
-            readyToEnter={readyToEnter}
-            onEnter={handleEnter}
         />
       )}
 
-      <div className={`w-full h-full transition-opacity duration-1000 ${assetsLoaded ? 'opacity-100' : 'opacity-0'}`}>
-        {assetsLoaded && <InteractiveMap layers={layers} audioRef={audioRef} />}
+      <div className={`w-full transition-opacity duration-300 ${assetsLoaded ? 'opacity-100' : 'opacity-0'} flex-grow h-0 md:h-full`}>
+        {assetsLoaded && <InteractiveMap layers={layers} playHoverSound={playHoverSound} />}
       </div>
+
+      {assetsLoaded && <ControlPanel hiddenLayers={hiddenLayers} onToggle={handleToggleLayer} />}
     </div>
   );
 };

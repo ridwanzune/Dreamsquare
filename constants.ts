@@ -1,4 +1,3 @@
-
 import { LayerData, ImageUrls } from './types';
 
 export const MAP_DIMENSIONS = {
@@ -17,7 +16,48 @@ export const NON_INTERACTIVE_LAYER_NAMES: string[] = [
     'Roads buggy',
     'Tree copy 56',
     'Map Ledgend',
-    'Logo',
+    'Entrance',
+];
+
+export const BUILDING_LAYER_NAMES: string[] = [
+  'Male Staff Quarters', 'Terrace', 'Gym', 'Dream villa',
+  'Grand hall', 'Prayer room', 'Big Kitchen', 'Garden restaurant', 'Spice Restaurant',
+  'New Kitchen', 'Split ', 'Store', 'Generator', 'owners cabin', 'Billiard Room',
+  'Duplex Villa', 'Eco Cabin', 'Mud House', 'Mid House 2', 'Water villas',
+  'Tower Building', 'Green Cabins', 'Laundry', 'Cow Farm', 'Female Staff Quarters',
+  'Hatchery', 'Reception', 'Twin Cabin', 'Dream House'
+];
+
+export const OTHER_FEATURES_LAYER_NAMES: string[] = [
+  'Big Pools Area', 'Small Swimming', 'Boats', 'Cricket Field', 'Kids playground', 
+  'Amphi theatre', 'Agri  fields', 'Agri  field 2', 'Agri  field 3', 'Football Field',
+  'Parrking', 'Cycle'
+];
+
+export const TOGGLEABLE_LAYERS: { [key: string]: string } = {
+  'Buildings': 'Buildings',
+  'Features': 'Features',
+  'Paths': 'Walkway',
+  'Roads': 'Roads buggy'
+};
+
+export const CLOUDS_CONFIG = [
+  { id: 1, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 500, y: 200, width: 800, height: 400, opacity: 0.8, duration: 120 },
+  { id: 2, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 1800, y: 800, width: 1000, height: 500, opacity: 0.9, duration: 90 },
+  { id: 3, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 3000, y: 500, width: 900, height: 450, opacity: 0.85, duration: 150 },
+  { id: 4, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 4200, y: 1200, width: 700, height: 350, opacity: 0.75, duration: 100 },
+  { id: 5, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 6000, y: 300, width: 1200, height: 600, opacity: 0.9, duration: 180 },
+  { id: 6, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 800, y: 1300, width: 800, height: 400, opacity: 0.8, duration: 130 },
+  { id: 7, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 2500, y: 1500, width: 700, height: 350, opacity: 0.75, duration: 160 },
+  { id: 8, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 5500, y: 900, width: 900, height: 450, opacity: 0.85, duration: 110 },
+  { id: 9, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 1500, y: 100, width: 800, height: 400, opacity: 0.8, duration: 140 },
+  { id: 10, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 3500, y: 1000, width: 1000, height: 500, opacity: 0.9, duration: 105 },
+  { id: 11, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 4800, y: 1600, width: 700, height: 350, opacity: 0.75, duration: 170 },
+  { id: 12, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 100, y: 100, width: 600, height: 300, opacity: 0.8, duration: 200 },
+  { id: 13, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 1200, y: 1400, width: 900, height: 450, opacity: 0.85, duration: 220 },
+  { id: 14, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 2800, y: 100, width: 700, height: 350, opacity: 0.75, duration: 190 },
+  { id: 15, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017621/Cloud_PNG_Clip_Art_Image-1171819204_touawb.png', x: 3800, y: 1800, width: 800, height: 400, opacity: 0.9, duration: 250 },
+  { id: 16, src: 'https://res.cloudinary.com/dy80ftu9k/image/upload/v1753017610/Cloud-PNG-Cutout-Architecture-Photoshop_01_iucmoe.png', x: 5000, y: 700, width: 1100, height: 550, opacity: 0.8, duration: 210 },
 ];
 
 export const LAYER_DATA: LayerData[] = [
@@ -43,7 +83,7 @@ export const LAYER_DATA: LayerData[] = [
   { "index": 19, "name": "Billiard Room", "filename": "19_Billiard_Room.png", "x": 1850, "y": 883, "width": 100, "height": 73, "opacity": 255 },
   { "index": 20, "name": "Small Swimming", "filename": "20_Small_Swimming.png", "x": 2138, "y": 863, "width": 159, "height": 125, "opacity": 255 },
   { "index": 21, "name": "Boats", "filename": "21_Boats.png", "x": 2042, "y": 1197, "width": 158, "height": 113, "opacity": 255 },
-  { "index": 22, "name": "Gate", "filename": "22_Gate.png", "x": 1364, "y": 1398, "width": 114, "height": 112, "opacity": 255 },
+  { "index": 22, "name": "Entrance", "filename": "22_Gate.png", "x": 1364, "y": 1398, "width": 114, "height": 112, "opacity": 255 },
   { "index": 23, "name": "Duplex Villa", "filename": "23_Duplex_Villa.png", "x": 1590, "y": 692, "width": 141, "height": 128, "opacity": 255 },
   { "index": 24, "name": "Eco Cabin", "filename": "24_Eco_Cabin.png", "x": 1487, "y": 751, "width": 135, "height": 104, "opacity": 255 },
   { "index": 25, "name": "Mud House", "filename": "25_Mud_House.png", "x": 1479, "y": 884, "width": 121, "height": 104, "opacity": 255 },
@@ -63,12 +103,11 @@ export const LAYER_DATA: LayerData[] = [
   { "index": 39, "name": "Hatchery", "filename": "39_Hatchery.png", "x": 2190, "y": 1384, "width": 100, "height": 75, "opacity": 255 },
   { "index": 40, "name": "Football Field", "filename": "40_Football_Field.png", "x": 1551, "y": 1322, "width": 264, "height": 224, "opacity": 255 },
   { "index": 41, "name": "Parrking", "filename": "41_Parrking.png", "x": 1201, "y": 1153, "width": 205, "height": 225, "opacity": 255 },
-  { "index": 42, "name": "Layer 8", "filename": "42_Layer_8.png", "x": 2179, "y": 1839, "width": 185, "height": 169, "opacity": 255 },
+  { "index": 42, "name": "Dream House", "filename": "42_Layer_8.png", "x": 2179, "y": 1839, "width": 185, "height": 169, "opacity": 255 },
   { "index": 43, "name": "Reception", "filename": "43_Reception.png", "x": 1431, "y": 1257, "width": 106, "height": 86, "opacity": 255 },
   { "index": 44, "name": "Twin Cabin", "filename": "44_Twin_Cabin.png", "x": 1727, "y": 1299, "width": 88, "height": 56, "opacity": 255 },
   { "index": 45, "name": "Cycle", "filename": "45_Cycle.png", "x": 1375, "y": 1141, "width": 103, "height": 93, "opacity": 255 },
   { "index": 46, "name": "Map Ledgend", "filename": "46_Map_Ledgend.png", "x": 3103, "y": 277, "width": 718, "height": 160, "opacity": 255 },
-  { "index": 47, "name": "Logo", "filename": "47_Logo.png", "x": 98, "y": 80, "width": 547, "height": 445, "opacity": 255 },
   { "index": 48, "name": "Tree copy 56", "filename": "48_Tree_copy_56.png", "x": 799, "y": 158, "width": 2212, "height": 1823, "opacity": 255 }
 ];
 
@@ -87,7 +126,7 @@ export const IMAGE_URLS: ImageUrls = {
   "Surface": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012407/interactive_map/Surface.png",
   "Small_Swimming": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012409/interactive_map/Small_Swimming.png",
   "Boats": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012410/interactive_map/Boats.png",
-  "Gate": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012411/interactive_map/Gate.png",
+  "Entrance": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012411/interactive_map/Gate.png",
   "Duplex_Villa": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012413/interactive_map/Duplex_Villa.png",
   "Eco_Cabin": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012414/interactive_map/Eco_Cabin.png",
   "Mud_House": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012415/interactive_map/Mud_House.png",
@@ -109,7 +148,7 @@ export const IMAGE_URLS: ImageUrls = {
   "Walkway": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012436/interactive_map/Walkway.png",
   "Football_Field": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012438/interactive_map/Football_Field.png",
   "Parrking": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012439/interactive_map/Parrking.png",
-  "Layer_8": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012440/interactive_map/Layer_8.png",
+  "Dream_House": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012440/interactive_map/Layer_8.png",
   "Reception": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012441/interactive_map/Reception.png",
   "Twin_Cabin": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012442/interactive_map/Twin_Cabin.png",
   "Cycle": "https://res.cloudinary.com/dukaroz3u/image/upload/v1753012443/interactive_map/Cycle.png",

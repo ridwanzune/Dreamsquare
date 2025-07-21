@@ -1,17 +1,21 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Layer } from '../types';
 import { MAP_DIMENSIONS } from '../constants';
 import MapLayer from './MapLayer';
+import Clouds from './Clouds';
 
 interface InteractiveMapProps {
   layers: Layer[];
-  audioRef: React.RefObject<HTMLAudioElement>;
+  playHoverSound: () => void;
 }
 
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 5;
 
-const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => {
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+
+const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, playHoverSound }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredLayerName, setHoveredLayerName] = useState<string | null>(null);
   
@@ -23,19 +27,49 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
 
   const handleHover = useCallback((name: string | null) => {
     setHoveredLayerName(name);
-  }, []);
+    if (name) {
+        playHoverSound();
+    }
+  }, [playHoverSound]);
+
+  const getClampedPosition = (pos: {x: number, y: number}, newScale: number) => {
+    if (!containerRef.current) return pos;
+    const { clientWidth, clientHeight } = containerRef.current;
+    
+    const worldWidth = MAP_DIMENSIONS.width * newScale;
+    const worldHeight = MAP_DIMENSIONS.height * newScale;
+
+    const minX = clientWidth - worldWidth;
+    const minY = clientHeight - worldHeight;
+    const maxX = 0;
+    const maxY = 0;
+    
+    // If map is smaller than container, allow it to be centered
+    const finalMinX = worldWidth < clientWidth ? (clientWidth - worldWidth) / 2 : minX;
+    const finalMaxX = worldWidth < clientWidth ? (clientWidth - worldWidth) / 2 : maxX;
+    const finalMinY = worldHeight < clientHeight ? (clientHeight - worldHeight) / 2 : minY;
+    const finalMaxY = worldHeight < clientHeight ? (clientHeight - worldHeight) / 2 : maxY;
+
+    return {
+      x: clamp(pos.x, finalMinX, finalMaxX),
+      y: clamp(pos.y, finalMinY, finalMaxY),
+    };
+  }
 
   const calculateInitialView = useCallback(() => {
     if (containerRef.current) {
       const { clientWidth, clientHeight } = containerRef.current;
       const scaleX = clientWidth / MAP_DIMENSIONS.width;
       const scaleY = clientHeight / MAP_DIMENSIONS.height;
-      const initialScale = Math.min(scaleX, scaleY);
-      setScale(initialScale);
-
-      const initialX = (clientWidth - MAP_DIMENSIONS.width * initialScale) / 2;
-      const initialY = (clientHeight - MAP_DIMENSIONS.height * initialScale) / 2;
-      setPosition({ x: initialX, y: initialY });
+      const initialScale = Math.min(scaleX, scaleY, 1);
+      const clampedScale = clamp(initialScale, MIN_SCALE, MAX_SCALE);
+      setScale(clampedScale);
+      
+      const initialPos = {
+        x: (clientWidth - MAP_DIMENSIONS.width * clampedScale) / 2,
+        y: (clientHeight - MAP_DIMENSIONS.height * clampedScale) / 2,
+      };
+      setPosition(getClampedPosition(initialPos, clampedScale));
     }
   }, []);
 
@@ -57,16 +91,18 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
 
     const zoomFactor = 1.1;
     const newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
-    const clampedScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
+    const clampedScale = clamp(newScale, MIN_SCALE, MAX_SCALE);
 
     const mapX = (mouseX - position.x) / scale;
     const mapY = (mouseY - position.y) / scale;
 
-    const newX = mouseX - mapX * clampedScale;
-    const newY = mouseY - mapY * clampedScale;
-
+    const newPosition = {
+      x: mouseX - mapX * clampedScale,
+      y: mouseY - mapY * clampedScale,
+    };
+    
     setScale(clampedScale);
-    setPosition({ x: newX, y: newY });
+    setPosition(getClampedPosition(newPosition, clampedScale));
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -81,10 +117,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     e.preventDefault();
-    setPosition({
+    const newPosition = {
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
-    });
+    };
+    setPosition(getClampedPosition(newPosition, scale));
   };
 
   const handleMouseUp = () => {
@@ -100,6 +137,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
             y: e.touches[0].clientY - position.y,
         });
     } else if (e.touches.length === 2) {
+        setIsDragging(false);
         const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         setPinchDist(dist);
     }
@@ -107,22 +145,23 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 1 && isDragging) {
-        setPosition({
-            x: e.touches[0].clientX - dragStart.x,
-            y: e.touches[0].clientY - dragStart.y,
-        });
+        const newPosition = {
+          x: e.touches[0].clientX - dragStart.x,
+          y: e.touches[0].clientY - dragStart.y,
+        };
+        setPosition(getClampedPosition(newPosition, scale));
     } else if (e.touches.length === 2) {
         if (!containerRef.current) return;
         const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
         
-        if (pinchDist === 0) { // Safety check
+        if (pinchDist === 0) {
             setPinchDist(newDist);
             return;
         }
 
         const zoomFactor = newDist / pinchDist;
         const newScale = scale * zoomFactor;
-        const clampedScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
+        const clampedScale = clamp(newScale, MIN_SCALE, MAX_SCALE);
 
         const rect = containerRef.current.getBoundingClientRect();
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
@@ -131,11 +170,13 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
         const mapX = (midX - position.x) / scale;
         const mapY = (midY - position.y) / scale;
 
-        const newX = midX - mapX * clampedScale;
-        const newY = midY - mapY * clampedScale;
+        const newPosition = {
+          x: midX - mapX * clampedScale,
+          y: midY - mapY * clampedScale,
+        };
 
         setScale(clampedScale);
-        setPosition({ x: newX, y: newY });
+        setPosition(getClampedPosition(newPosition, clampedScale));
         setPinchDist(newDist);
     }
   };
@@ -144,7 +185,6 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
     setIsDragging(false);
     setPinchDist(0);
   };
-
 
   const handleMouseLeave = () => {
     setIsDragging(false);
@@ -173,13 +213,13 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ layers, audioRef }) => 
         }}
         onMouseLeave={() => handleHover(null)}
       >
+        <Clouds />
         {sortedLayers.map(layer => (
           <MapLayer
             key={layer.index}
             layer={layer}
             isHovered={hoveredLayerName === layer.name}
             onHover={handleHover}
-            audioRef={audioRef}
           />
         ))}
       </div>
